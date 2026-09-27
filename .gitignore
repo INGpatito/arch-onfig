@@ -1,0 +1,9 @@
+# Ignorar backups y archivos temporales
+*.bak
+*.bak.*
+*.swp
+*.swo
+*~
+
+# Caelestia - no subir GIFs pesados (son del tema base, no configs personales)
+.config/caelestia/*.gif

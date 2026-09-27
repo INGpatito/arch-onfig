@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# omen-blackarch-run
+# Ejecuta programas de forma 100% aislada dentro del contenedor BlackArch
+set -euo pipefail
+
+machine_name="blackarch-omen-lab"
+rootfs="/var/lib/machines/${machine_name}"
+cmd="${1:-/bin/bash}"
+shift || true
+
+host_runtime="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+wayland_disp="${WAYLAND_DISPLAY:-wayland-1}"
+
+# Resolver rutas absolutas requeridas por machinectl shell
+case "$cmd" in
+  firefox) cmd="/usr/bin/firefox" ;;
+  thunar)  cmd="/usr/bin/thunar" ;;
+  yazi)    cmd="/usr/bin/yazi" ;;
+  foot)    cmd="/usr/bin/foot" ;;
+  bash)    cmd="/bin/bash" ;;
+esac
+
+# Asegurar que el socket existe antes de bindear
+wayland_bind=()
+if [[ -S "${host_runtime}/${wayland_disp}" ]]; then
+  wayland_bind=("--bind=${host_runtime}/${wayland_disp}:/tmp/${wayland_disp}")
+fi
+
+if sudo machinectl list 2>/dev/null | grep -q "${machine_name}"; then
+  exec sudo machinectl shell \
+    -E WAYLAND_DISPLAY="${wayland_disp}" \
+    -E XDG_RUNTIME_DIR="/tmp" \
+    -E DISPLAY="${DISPLAY:-:1}" \
+    -E TERM="${TERM:-xterm-256color}" \
+    "blackarch@${machine_name}" "$cmd" "$@"
+else
+  exec sudo systemd-nspawn \
+    --directory="${rootfs}" \
+    --hostname=blackarch-lab \
+    --capability=all \
+    "${wayland_bind[@]}" \
+    --setenv=WAYLAND_DISPLAY="${wayland_disp}" \
+    --setenv=XDG_RUNTIME_DIR="/tmp" \
+    --user=blackarch \
+    "$cmd" "$@"
+fi

@@ -1,0 +1,5 @@
+{
+  "wallpaper": {
+    "postHook": "/home/pato/.local/bin/caelestia-wallpaper-hook.sh"
+  }
+}
